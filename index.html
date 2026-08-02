@@ -350,6 +350,34 @@
       to{opacity:1;transform:none}
     }
 
+
+    .sync-status{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:10000;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 13px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--border);
+      box-shadow:0 10px 28px rgba(31,36,44,.14);
+      font-size:13px;
+      font-weight:700;
+      color:var(--muted);
+      transition:.2s ease;
+    }
+    .sync-status .sync-dot{
+      width:9px;height:9px;border-radius:50%;background:#8a93a0;
+    }
+    .sync-status.loading .sync-dot{background:#c27715;animation:syncPulse 1s infinite}
+    .sync-status.saving .sync-dot{background:#2f6fbe;animation:syncPulse 1s infinite}
+    .sync-status.saved .sync-dot{background:#23845a}
+    .sync-status.error .sync-dot{background:#c34747}
+    @keyframes syncPulse{50%{opacity:.35}}
+
 </style>
 </head>
 <body class="locked">
@@ -402,6 +430,8 @@
   </main>
 </div>
 
+<div id="syncStatus" class="sync-status loading"><span class="sync-dot"></span><span id="syncText">Connexion au serveur…</span></div>
+
 <div id="modal" class="modal">
   <div class="modal-box">
     <div class="modal-head"><h3 id="modalTitle"></h3><button class="close" onclick="closeModal()">✕</button></div>
@@ -436,14 +466,120 @@ const defaultData = {
   orders:[]
 };
 
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || defaultData;
-if(!data.settings.deliveryCities) data.settings.deliveryCities=structuredClone(defaultData.settings.deliveryCities);
-data.orders.forEach(o=>{ if(!o.quantity) o.quantity=1; if(o.deliveryPrice==null) o.deliveryPrice=0; if(!o.deliveryType) o.deliveryType="Retrait sur place"; if(!o.deliveryCity) o.deliveryCity=""; if(!o.deliveryAddress) o.deliveryAddress=""; });
-
+let data = structuredClone(defaultData);
 let ordersView="list";
 let calendarDate=new Date();
+let remoteSaveTimer=null;
+let remoteSaveInProgress=false;
+let pendingRemoteSave=false;
 
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderAll(); }
+function setSyncStatus(type,text){
+  const box=document.getElementById("syncStatus");
+  const label=document.getElementById("syncText");
+  if(!box||!label)return;
+  box.className=`sync-status ${type}`;
+  label.textContent=text;
+}
+
+function normalizeData(value){
+  const normalized=(value && typeof value==="object") ? value : structuredClone(defaultData);
+
+  if(!normalized.settings) normalized.settings=structuredClone(defaultData.settings);
+  if(!normalized.settings.deliveryCities){
+    normalized.settings.deliveryCities=structuredClone(defaultData.settings.deliveryCities);
+  }
+  if(!Array.isArray(normalized.products)) normalized.products=[];
+  if(!Array.isArray(normalized.clients)) normalized.clients=[];
+  if(!Array.isArray(normalized.orders)) normalized.orders=[];
+
+  normalized.orders.forEach(o=>{
+    if(!o.quantity)o.quantity=1;
+    if(o.deliveryPrice==null)o.deliveryPrice=0;
+    if(!o.deliveryType)o.deliveryType="Retrait sur place";
+    if(!o.deliveryCity)o.deliveryCity="";
+    if(!o.deliveryAddress)o.deliveryAddress="";
+    if(!Array.isArray(o.steps))o.steps=[];
+  });
+
+  return normalized;
+}
+
+async function loadServerData(){
+  setSyncStatus("loading","Chargement des données…");
+
+  try{
+    const response=await fetch("/api/data",{method:"GET",cache:"no-store"});
+    if(!response.ok)throw new Error(`Erreur serveur ${response.status}`);
+
+    const result=await response.json();
+    if(result.success===false)throw new Error(result.error||"Erreur de chargement");
+
+    if(result.data && Object.keys(result.data).length){
+      data=normalizeData(result.data);
+      save();
+      setSyncStatus("saved","Données synchronisées");
+    }else{
+      const cached=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+      data=normalizeData(cached||defaultData);
+      await saveToServer(true);
+    }
+  }catch(error){
+    console.error(error);
+    const cached=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+    data=normalizeData(cached||defaultData);
+    setSyncStatus("error","Hors ligne — copie locale");
+  }
+}
+
+function save(){
+  data=normalizeData(data);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  renderAll();
+  scheduleRemoteSave();
+}
+
+function scheduleRemoteSave(){
+  clearTimeout(remoteSaveTimer);
+  setSyncStatus("saving","Sauvegarde en cours…");
+  remoteSaveTimer=setTimeout(()=>saveToServer(false),450);
+}
+
+async function saveToServer(force=false){
+  if(remoteSaveInProgress){
+    pendingRemoteSave=true;
+    return;
+  }
+
+  remoteSaveInProgress=true;
+  pendingRemoteSave=false;
+  setSyncStatus("saving","Sauvegarde sur le serveur…");
+
+  try{
+    const response=await fetch("/api/data",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
+
+    if(!response.ok)throw new Error(`Erreur serveur ${response.status}`);
+    const result=await response.json();
+    if(result.success===false)throw new Error(result.error||"Erreur de sauvegarde");
+
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    setSyncStatus("saved","Toutes les données sont synchronisées");
+  }catch(error){
+    console.error(error);
+    setSyncStatus("error","Erreur serveur — copie locale conservée");
+  }finally{
+    remoteSaveInProgress=false;
+    if(pendingRemoteSave)saveToServer(false);
+  }
+}
+
+async function initializeApp(){
+  await loadServerData();
+  renderAll();
+}
 function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function formatDate(d){ return d ? new Date(d).toLocaleDateString("fr-FR") : "—"; }
 function daysSince(date){ return Math.floor((Date.now()-new Date(date).getTime())/86400000); }
@@ -835,7 +971,8 @@ function autoSaveSettings(){
   settingsSaveTimer=setTimeout(()=>{
     data.settings.warningDays=Number(warningDays.value||7);
     data.settings.criticalDays=Number(criticalDays.value||14);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    scheduleRemoteSave();
     const msg=document.getElementById("settingsSaved");
     if(msg){msg.textContent="✓ Paramètres enregistrés automatiquement";setTimeout(()=>msg.textContent="",1800);}
     renderDashboard();renderOrders();
@@ -856,23 +993,38 @@ function exportData(){
   URL.revokeObjectURL(url);
 }
 function importBackup(event){
-const file=event.target.files[0];
-if(!file)return;
-const r=new FileReader();
-r.onload=(e)=>{
- try{
-  const obj=JSON.parse(e.target.result);
-  const data=obj.data||obj;
-  if(!confirm("Remplacer toutes les données actuelles ?"))return;
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-  alert("Sauvegarde restaurée.");
-  location.reload();
- }catch(e){alert("Fichier invalide.");}
-};
-r.readAsText(file);
+  const file=event.target.files[0];
+  if(!file)return;
+
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const imported=parsed.data||parsed;
+
+      if(!confirm("Remplacer toutes les données actuelles par cette sauvegarde ?"))return;
+
+      data=normalizeData(imported);
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+      renderAll();
+      await saveToServer(true);
+      alert("✅ Sauvegarde restaurée et synchronisée.");
+      event.target.value="";
+    }catch(error){
+      console.error(error);
+      alert("❌ Fichier de sauvegarde invalide.");
+    }
+  };
+  reader.readAsText(file);
 }
 
-function resetDemo(){ if(confirm("Supprimer toutes les données enregistrées ?")){localStorage.removeItem(STORAGE_KEY);data=structuredClone(defaultData);save();} }
+function resetDemo(){
+  if(confirm("Supprimer toutes les données et réinitialiser le logiciel ?")){
+    data=structuredClone(defaultData);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    save();
+  }
+} }
 
 function renderAll(){renderDashboard();renderOrders();renderProducts();renderClients();renderStats();renderSettings();}
 function goTo(page){document.querySelector(`[data-page="${page}"]`).click();}
@@ -1047,7 +1199,7 @@ function saveClient(){
   data.clients.push({id:uid("c"),name:cName.value.trim(),phone:cPhone.value.trim(),email:cEmail.value.trim()});
   closeModal();save();
 }
-renderAll();
+initializeApp();
 </script>
 
 <script>
