@@ -383,6 +383,22 @@
     .sync-status.retry:hover{transform:translateY(-1px)}
     @keyframes syncPulse{50%{opacity:.35}}
 
+
+    .client-actions{display:flex;gap:8px;justify-content:flex-end}
+    .icon-action{
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+      width:36px;
+      height:36px;
+      border-radius:10px;
+      cursor:pointer;
+      display:inline-grid;
+      place-items:center;
+    }
+    .icon-action:hover{background:#f5f6f8}
+    .icon-action.delete{color:var(--red);background:var(--red-soft);border-color:#f3cccc}
+
 </style>
 </head>
 <body class="locked">
@@ -913,10 +929,22 @@ function renderClients(){
   clients.innerHTML=`
     <div class="topbar"><div><h2>Clients</h2><p>Coordonnées et historique des commandes.</p></div>
       <button class="primary-btn" onclick="openClientModal()">+ Nouveau client</button></div>
-    <div class="card"><table><thead><tr><th>Nom</th><th>Téléphone</th><th>Email</th><th>Commandes</th><th>Total</th></tr></thead><tbody>
+    <div class="card"><table><thead><tr><th>Nom</th><th>Téléphone</th><th>Email</th><th>Commandes</th><th>Total</th><th style="text-align:right">Actions</th></tr></thead><tbody>
       ${data.clients.map(c=>{
         const os=data.orders.filter(o=>o.clientId===c.id);
-        return `<tr><td><strong>${c.name}</strong></td><td>${c.phone||"—"}</td><td>${c.email||"—"}</td><td>${os.length}</td><td>${money(os.reduce((s,o)=>s+(Number(o.price||0)*Number(o.quantity||1)+Number(o.deliveryPrice||0)),0))}</td></tr>`;
+        return `<tr>
+          <td><strong>${c.name}</strong></td>
+          <td>${c.phone||"—"}</td>
+          <td>${c.email||"—"}</td>
+          <td>${os.length}</td>
+          <td>${money(os.reduce((s,o)=>s+(Number(o.price||0)*Number(o.quantity||1)+Number(o.deliveryPrice||0)),0))}</td>
+          <td>
+            <div class="client-actions">
+              <button class="icon-action" title="Modifier" onclick="openClientModal('${c.id}')">✏️</button>
+              <button class="icon-action delete" title="Supprimer" onclick="deleteClient('${c.id}')">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
       }).join("")}</tbody></table></div>`;
 }
 function renderStats(){
@@ -1218,44 +1246,103 @@ function deleteProduct(id){
   if(data.orders.some(o=>o.productId===id)){alert("Ce produit est utilisé dans une commande.");return}
   if(confirm("Supprimer ce produit ?")){data.products=data.products.filter(p=>p.id!==id);closeModal();save();}
 }
-function openClientModal(){
-  openModal("Nouveau client",`<div class="form-grid">
-    <div class="field"><label>Nom *</label><input id="cName"></div>
-    <div class="field"><label>Téléphone</label><input id="cPhone"></div>
-    <div class="field full"><label>Email</label><input id="cEmail" type="email"></div>
-  </div><button class="primary-btn" style="margin-top:18px" onclick="saveClient()">Enregistrer</button>`);
+function openClientModal(id=null){
+  const client=id?data.clients.find(c=>c.id===id):null;
+
+  openModal(client?"Modifier le client":"Nouveau client",`
+    <div class="form-grid">
+      <div class="field"><label>Nom *</label><input id="cName" value="${client?.name||""}"></div>
+      <div class="field"><label>Téléphone</label><input id="cPhone" value="${client?.phone||""}"></div>
+      <div class="field full"><label>Email</label><input id="cEmail" type="email" value="${client?.email||""}"></div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="primary-btn" onclick="saveClient('${id||""}')">Enregistrer</button>
+      ${client?`<button class="danger-btn" onclick="deleteClient('${client.id}',true)">Supprimer</button>`:""}
+    </div>`);
 }
-function saveClient(){
-  if(!cName.value.trim()){alert("Ajoute un nom.");return}
-  data.clients.push({id:uid("c"),name:cName.value.trim(),phone:cPhone.value.trim(),email:cEmail.value.trim()});
-  closeModal();save();
+
+function saveClient(id=""){
+  if(!cName.value.trim()){
+    alert("Ajoute un nom.");
+    return;
+  }
+
+  const existing=id?data.clients.find(c=>c.id===id):null;
+
+  if(existing){
+    existing.name=cName.value.trim();
+    existing.phone=cPhone.value.trim();
+    existing.email=cEmail.value.trim();
+  }else{
+    data.clients.push({
+      id:uid("c"),
+      name:cName.value.trim(),
+      phone:cPhone.value.trim(),
+      email:cEmail.value.trim()
+    });
+  }
+
+  closeModal();
+  save();
+}
+
+function deleteClient(id,fromModal=false){
+  const client=data.clients.find(c=>c.id===id);
+  if(!client)return;
+
+  const linkedOrders=data.orders.filter(o=>o.clientId===id);
+
+  if(linkedOrders.length){
+    alert(`Impossible de supprimer ${client.name} : ce client possède ${linkedOrders.length} commande${linkedOrders.length>1?"s":""}. Supprime ou réattribue d'abord ses commandes.`);
+    return;
+  }
+
+  if(!confirm(`Supprimer définitivement le client « ${client.name} » ?`))return;
+
+  data.clients=data.clients.filter(c=>c.id!==id);
+  if(fromModal)closeModal();
+  save();
 }
 // Le chargement serveur démarre après validation du code d'accès.
 </script>
 
 <script>
 (function(){
-  const cover = document.getElementById("loginCover");
-  const form = document.getElementById("crmLoginForm");
-  const input = document.getElementById("crmAccessCode");
-  const error = document.getElementById("loginError");
+  const AUTH_KEY="printyourgame_auth_until";
+  const AUTH_DURATION=2*60*60*1000;
+  const cover=document.getElementById("loginCover");
+  const form=document.getElementById("crmLoginForm");
+  const input=document.getElementById("crmAccessCode");
+  const error=document.getElementById("loginError");
 
-  setTimeout(()=>input.focus(),120);
+  function revealCRM(){
+    document.body.classList.remove("locked");
+    document.body.classList.add("unlocked");
+    cover.classList.add("closing");
+
+    setTimeout(()=>{
+      cover.style.display="none";
+    },450);
+
+    initializeApp();
+  }
+
+  const authUntil=Number(localStorage.getItem(AUTH_KEY)||0);
+
+  if(Date.now()<authUntil){
+    revealCRM();
+  }else{
+    localStorage.removeItem(AUTH_KEY);
+    setTimeout(()=>input.focus(),120);
+  }
 
   form.addEventListener("submit",function(event){
     event.preventDefault();
 
     if(input.value.trim()==="ethan"){
       error.textContent="";
-      document.body.classList.remove("locked");
-      document.body.classList.add("unlocked");
-      cover.classList.add("closing");
-
-      setTimeout(()=>{
-        cover.style.display="none";
-      },450);
-
-      initializeApp();
+      localStorage.setItem(AUTH_KEY,String(Date.now()+AUTH_DURATION));
+      revealCRM();
     }else{
       error.textContent="Code incorrect.";
       input.select();
