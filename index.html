@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrintYourGame CRM</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --text:#172033;
+      --muted:#6f7a90;
+      --border:#e7ebf3;
+      --nav:#121a2b;
+      --primary:#5b67f1;
+      --primary-soft:#eef0ff;
+      --green:#27b474;
+      --green-soft:#eaf8f1;
+      --orange:#f59e0b;
+      --orange-soft:#fff6df;
+      --red:#ef5b5b;
+      --red-soft:#fff0f0;
+      --blue:#3b82f6;
+      --shadow:0 10px 30px rgba(23,32,51,.07);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    button,input,select,textarea{font:inherit}
+    .app{display:flex;min-height:100vh}
+    .sidebar{
+      width:240px;background:var(--nav);color:white;padding:24px 16px;position:fixed;inset:0 auto 0 0;
+    }
+    .brand{display:flex;gap:12px;align-items:center;padding:0 10px 28px}
+    .brand-logo{
+      width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#7c83ff,#4f5bd5);
+      display:grid;place-items:center;font-size:22px;box-shadow:0 10px 25px rgba(91,103,241,.35);
+    }
+    .brand h1{font-size:17px;margin:0}.brand small{color:#9da8bd}
+    nav{display:flex;flex-direction:column;gap:8px}
+    .nav-btn{
+      border:0;background:transparent;color:#b9c2d4;padding:13px 14px;border-radius:12px;text-align:left;
+      display:flex;gap:12px;align-items:center;cursor:pointer;
+    }
+    .nav-btn:hover,.nav-btn.active{background:#202b43;color:white}
+    .main{margin-left:240px;width:calc(100% - 240px);padding:28px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .topbar h2{margin:0;font-size:28px}.topbar p{margin:5px 0 0;color:var(--muted)}
+    .primary-btn,.secondary-btn,.danger-btn{
+      border:0;border-radius:12px;padding:11px 16px;cursor:pointer;font-weight:700;
+    }
+    .primary-btn{background:var(--primary);color:white}
+    .secondary-btn{background:var(--primary-soft);color:var(--primary)}
+    .danger-btn{background:var(--red-soft);color:var(--red)}
+    .page{display:none}.page.active{display:block}
+    .grid{display:grid;gap:18px}
+    .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{
+      background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);
+    }
+    .stat-card .label{color:var(--muted);font-size:14px}
+    .stat-card .value{font-size:31px;font-weight:800;margin:9px 0 4px}
+    .stat-card .hint{font-size:13px;color:var(--muted)}
+    .accent{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .section-title h3{margin:0;font-size:18px}
+    .two-col{grid-template-columns:1.4fr .8fr;margin-top:18px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:13px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:14px}
+    th{color:var(--muted);font-weight:700}
+    .badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}
+    .badge.green{background:var(--green-soft);color:var(--green)}
+    .badge.orange{background:var(--orange-soft);color:#b97800}
+    .badge.red{background:var(--red-soft);color:var(--red)}
+    .badge.blue{background:#eaf2ff;color:var(--blue)}
+    .badge.gray{background:#eef1f6;color:#667085}
+    .progress{height:9px;background:#edf0f5;border-radius:999px;overflow:hidden}
+    .progress > span{display:block;height:100%;background:linear-gradient(90deg,#6d74ff,#8f95ff);border-radius:inherit}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+    .toolbar input,.toolbar select,.field input,.field select,.field textarea{
+      border:1px solid var(--border);background:white;border-radius:12px;padding:11px 12px;outline:none;
+    }
+    .toolbar input{min-width:230px}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .order-card{
+      background:white;border:1px solid var(--border);border-radius:16px;padding:16px;
+      display:grid;grid-template-columns:1.2fr .9fr .8fr auto;gap:16px;align-items:center;
+      box-shadow:var(--shadow);cursor:pointer;
+    }
+    .muted{color:var(--muted)} .small{font-size:12px}
+    .product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .product-card{background:white;border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+    .product-card h4{margin:0 0 6px}.product-card .steps{margin:14px 0 0;padding:0;list-style:none}
+    .product-card .steps li{padding:7px 0;border-bottom:1px dashed var(--border);font-size:13px;color:var(--muted)}
+    .modal{
+      position:fixed;inset:0;background:rgba(8,13,24,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:20;
+    }
+    .modal.open{display:flex}
+    .modal-box{
+      width:min(760px,100%);max-height:90vh;overflow:auto;background:white;border-radius:22px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.25);
+    }
+    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .modal-head h3{margin:0}.close{border:0;background:#f2f4f8;border-radius:10px;width:36px;height:36px;cursor:pointer}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field{display:flex;flex-direction:column;gap:7px}.field label{font-size:13px;font-weight:800}
+    .field.full{grid-column:1/-1}
+    .steps-editor{display:flex;flex-direction:column;gap:10px}
+    .step-row{display:grid;grid-template-columns:1fr 120px 44px;gap:8px}
+    .step-check{
+      display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;
+    }
+    .alert-item{padding:13px;border-radius:13px;margin-bottom:10px}
+    .alert-item.red{background:var(--red-soft)}.alert-item.orange{background:var(--orange-soft)}
+    .empty{padding:30px;text-align:center;color:var(--muted)}
+    .bar-chart{display:flex;align-items:flex-end;gap:14px;height:220px;padding:18px 10px 0}
+    .bar-wrap{flex:1;text-align:center}.bar{background:linear-gradient(180deg,#7c83ff,#5b67f1);border-radius:10px 10px 4px 4px;min-height:8px}
+    .bar-wrap span{font-size:12px;color:var(--muted)}
+
+    .view-switch{display:flex;gap:8px}
+    .view-switch button{border:1px solid var(--border);background:white;color:var(--muted);padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700}
+    .view-switch button.active{background:var(--primary);color:white;border-color:var(--primary)}
+    .calendar-wrap{background:white;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+    .calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .calendar-nav{display:flex;gap:8px;align-items:center}
+    .calendar-nav button{border:1px solid var(--border);background:white;border-radius:10px;width:38px;height:38px;cursor:pointer}
+    .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .calendar-day-name{font-size:12px;font-weight:800;color:var(--muted);text-align:center;padding:8px 0}
+    .calendar-cell{min-height:118px;border:1px solid var(--border);border-radius:14px;padding:9px;background:#fbfcfe}
+    .calendar-cell.outside{opacity:.38}
+    .calendar-date{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px}
+    .calendar-order{display:block;width:100%;border:0;border-radius:9px;padding:7px 8px;margin-bottom:6px;text-align:left;font-size:11px;font-weight:800;cursor:pointer}
+    .cal-blue{background:#eaf2ff;color:#2563eb}
+    .cal-orange{background:#fff3da;color:#b96f00}
+    .cal-purple{background:#f1eaff;color:#7c3aed}
+    .cal-green{background:#e9f8ef;color:#15803d}
+    .cal-red{background:#ffe9e9;color:#d92d20}
+    .cal-gray{background:#eef1f6;color:#667085}
+    .calendar-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .legend-item{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+    .unscheduled{margin-top:18px}
+    .unscheduled-list{display:flex;gap:10px;flex-wrap:wrap}
+    .unscheduled-card{border:1px dashed var(--border);background:#fafbfe;border-radius:12px;padding:10px 12px;cursor:pointer}
+
+    .delivery-city-row{display:grid;grid-template-columns:1fr 140px 44px;gap:8px;align-items:center}
+    .delivery-city-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+
+
+    @media(max-width:1000px){
+      .cards{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.product-grid{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:760px){
+      .sidebar{width:76px}.brand-text,.nav-btn span{display:none}.main{margin-left:76px;width:calc(100% - 76px);padding:18px}
+      .nav-btn{justify-content:center}.cards,.product-grid{grid-template-columns:1fr}.order-card{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}
+      .field.full{grid-column:auto}.topbar{align-items:flex-start;gap:10px}.topbar h2{font-size:23px}.calendar-grid{grid-template-columns:repeat(2,1fr)}.calendar-day-name{display:none}.calendar-cell{min-height:100px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">🎲</div>
+      <div class="brand-text"><h1>PrintYourGame</h1><small>Gestion atelier 3D</small></div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-page="dashboard">🏠 <span>Tableau de bord</span></button>
+      <button class="nav-btn" data-page="orders">📦 <span>Commandes</span></button>
+      <button class="nav-btn" data-page="products">🎲 <span>Produits</span></button>
+      <button class="nav-btn" data-page="clients">👥 <span>Clients</span></button>
+      <button class="nav-btn" data-page="stats">📈 <span>Statistiques</span></button>
+      <button class="nav-btn" data-page="settings">⚙️ <span>Paramètres</span></button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section id="dashboard" class="page active"></section>
+    <section id="orders" class="page"></section>
+    <section id="products" class="page"></section>
+    <section id="clients" class="page"></section>
+    <section id="stats" class="page"></section>
+    <section id="settings" class="page"></section>
+  </main>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle"></h3><button class="close" onclick="closeModal()">✕</button></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "printyourgame_crm_v1";
+const defaultData = {
+  settings:{warningDays:7,criticalDays:14,deliveryCities:[{id:"d1",city:"Ashkelon",price:30},{id:"d2",city:"Ashdod",price:40},{id:"d3",city:"Tel Aviv",price:60}]},
+  products:[
+    {id:"p1",name:"Backgammon livre",price:320,steps:[
+      {name:"Plateau gauche",type:"Impression"},
+      {name:"Plateau droit",type:"Impression"},
+      {name:"Pions clairs",type:"Impression"},
+      {name:"Pions foncés",type:"Impression"},
+      {name:"Assemblage",type:"Assemblage"},
+      {name:"Contrôle qualité",type:"Contrôle"}
+    ]},
+    {id:"p2",name:"Échecs livre",price:280,steps:[
+      {name:"Échiquier",type:"Impression"},
+      {name:"Pièces blanches",type:"Impression"},
+      {name:"Pièces noires",type:"Impression"},
+      {name:"Assemblage",type:"Assemblage"}
+    ]}
+  ],
+  clients:[
+    {id:"c1",name:"David Cohen",phone:"050-1234567",email:"david@example.com"},
+    {id:"c2",name:"Sarah Levy",phone:"052-7778899",email:"sarah@example.com"}
+  ],
+  orders:[]
+};
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || defaultData;
+if(!data.settings.deliveryCities) data.settings.deliveryCities=structuredClone(defaultData.settings.deliveryCities);
+data.orders.forEach(o=>{ if(!o.quantity) o.quantity=1; if(o.deliveryPrice==null) o.deliveryPrice=0; if(!o.deliveryType) o.deliveryType="Retrait sur place"; if(!o.deliveryCity) o.deliveryCity=""; if(!o.deliveryAddress) o.deliveryAddress=""; });
+
+let ordersView="list";
+let calendarDate=new Date();
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); renderAll(); }
+function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function formatDate(d){ return d ? new Date(d).toLocaleDateString("fr-FR") : "—"; }
+function daysSince(date){ return Math.floor((Date.now()-new Date(date).getTime())/86400000); }
+function money(n){ return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"ILS",maximumFractionDigits:0}).format(Number(n||0)); }
+
+function orderProgress(order){
+  if(!order.steps?.length) return 0;
+  return Math.round(order.steps.filter(s=>s.done).length/order.steps.length*100);
+}
+function orderAlert(order){
+  if(order.status==="Livrée" || order.status==="Annulée") return {level:"green",text:"Terminée"};
+  const days=daysSince(order.lastUpdate || order.createdAt);
+  if(days>=data.settings.criticalDays) return {level:"red",text:`Aucune mise à jour depuis ${days} jours`};
+  if(days>=data.settings.warningDays) return {level:"orange",text:`À vérifier : ${days} jours sans changement`};
+  return {level:"green",text:`Mise à jour il y a ${days} jour${days>1?"s":""}`};
+}
+function statusClass(status){
+  return status==="Livrée"?"green":status==="En production"?"blue":status==="En attente"?"orange":status==="Annulée"?"red":"gray";
+}
+
+document.querySelectorAll(".nav-btn").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active"); document.getElementById(btn.dataset.page).classList.add("active");
+}));
+
+
+function renderDashboardCalendar(){
+  const target=document.getElementById("dashboardCalendar");
+  if(!target) return;
+
+  const year=calendarDate.getFullYear();
+  const month=calendarDate.getMonth();
+  const monthLabel=calendarDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const first=new Date(year,month,1);
+  const startDay=(first.getDay()+6)%7;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevMonthDays=new Date(year,month,0).getDate();
+
+  const datedOrders=data.orders.filter(o=>o.dueDate);
+  let cells=[];
+
+  for(let i=0;i<42;i++){
+    let dayNum, cellDate, outside=false;
+    if(i<startDay){
+      dayNum=prevMonthDays-startDay+i+1;
+      cellDate=new Date(year,month-1,dayNum);
+      outside=true;
+    }else if(i>=startDay+daysInMonth){
+      dayNum=i-(startDay+daysInMonth)+1;
+      cellDate=new Date(year,month+1,dayNum);
+      outside=true;
+    }else{
+      dayNum=i-startDay+1;
+      cellDate=new Date(year,month,dayNum);
+    }
+
+    const iso=`${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,"0")}-${String(cellDate.getDate()).padStart(2,"0")}`;
+    const dayOrders=datedOrders.filter(o=>o.dueDate===iso);
+
+    cells.push(`<div class="calendar-cell ${outside?"outside":""}">
+      <div class="calendar-date">${dayNum}</div>
+      ${dayOrders.slice(0,3).map(o=>`<button class="calendar-order ${calendarStatusClass(o)}" onclick="openOrderDetails('${o.id}')">
+        #${o.number} · ${productName(o.productId)} ×${o.quantity||1}
+      </button>`).join("")}
+      ${dayOrders.length>3?`<div class="small muted">+${dayOrders.length-3} autre${dayOrders.length-3>1?"s":""}</div>`:""}
+    </div>`);
+  }
+
+  target.innerHTML=`
+    <div class="calendar-wrap">
+      <div class="calendar-head">
+        <div>
+          <h3 style="margin:0;text-transform:capitalize">${monthLabel}</h3>
+          <div class="small muted">Livraisons prévues</div>
+        </div>
+        <div class="calendar-nav">
+          <button onclick="calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()-1,1);renderDashboardCalendar()">‹</button>
+          <button onclick="calendarDate=new Date();renderDashboardCalendar()" style="width:auto;padding:0 12px">Aujourd'hui</button>
+          <button onclick="calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+1,1);renderDashboardCalendar()">›</button>
+        </div>
+      </div>
+      <div class="calendar-grid">
+        ${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(d=>`<div class="calendar-day-name">${d}</div>`).join("")}
+        ${cells.join("")}
+      </div>
+      <div class="calendar-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Nouvelle / en attente</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>En production</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>Prête</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#27b474"></span>Livrée</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ef5b5b"></span>En retard</div>
+      </div>
+    </div>`;
+}
+
+function renderDashboard(){
+  const active=data.orders.filter(o=>!["Livrée","Annulée"].includes(o.status));
+  const late=active.filter(o=>orderAlert(o).level==="red");
+  const inProd=active.filter(o=>o.status==="En production");
+  const revenue=data.orders.filter(o=>o.status==="Livrée").reduce((s,o)=>s+(Number(o.price||0)*Number(o.quantity||1)+Number(o.deliveryPrice||0)),0);
+  const recent=[...data.orders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  const alerts=active.map(o=>({o,a:orderAlert(o)})).filter(x=>x.a.level!=="green").slice(0,6);
+  const unscheduled=active.filter(o=>!o.dueDate);
+
+  dashboard.innerHTML=`
+    <div class="topbar">
+      <div><h2>Bonjour 👋</h2><p>Voici ce qu'il faut suivre aujourd'hui.</p></div>
+      <button class="primary-btn" onclick="openOrderModal()">+ Nouvelle commande</button>
+    </div>
+
+    <div class="grid cards">
+      ${statCard("Commandes actives",active.length,"#5b67f1","En cours actuellement")}
+      ${statCard("En production",inProd.length,"#3b82f6","Fabrication en cours")}
+      ${statCard("En retard",late.length,"#ef5b5b","À traiter rapidement")}
+      ${statCard("Chiffre d'affaires",money(revenue),"#27b474","Commandes livrées")}
+    </div>
+
+    <div id="dashboardCalendar" style="margin-top:18px"></div>
+
+    <div class="grid two-col">
+      <div class="card">
+        <div class="section-title"><h3>Commandes récentes</h3><button class="secondary-btn" onclick="goTo('orders')">Voir tout</button></div>
+        ${recent.length?`<table><thead><tr><th>Commande</th><th>Client</th><th>Produit</th><th>Avancement</th></tr></thead><tbody>
+          ${recent.map(o=>`<tr onclick="openOrderDetails('${o.id}')" style="cursor:pointer">
+            <td>#${o.number}</td><td>${clientName(o.clientId)}</td><td>${productName(o.productId)}</td>
+            <td><div class="progress"><span style="width:${orderProgress(o)}%"></span></div><span class="small muted">${orderProgress(o)}%</span></td>
+          </tr>`).join("")}</tbody></table>`:`<div class="empty">Aucune commande pour le moment.</div>`}
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card">
+          <div class="section-title"><h3>Alertes</h3></div>
+          ${alerts.length?alerts.map(x=>`<div class="alert-item ${x.a.level}" onclick="openOrderDetails('${x.o.id}')" style="cursor:pointer">
+            <strong>#${x.o.number} · ${clientName(x.o.clientId)}</strong>
+            <div class="small">${x.a.text}</div>
+          </div>`).join(""):`<div class="empty">Aucune alerte 🎉</div>`}
+        </div>
+
+        <div class="card">
+          <div class="section-title"><h3>À planifier</h3><span class="badge gray">${unscheduled.length}</span></div>
+          ${unscheduled.length?unscheduled.slice(0,5).map(o=>`
+            <div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openOrderDetails('${o.id}')">
+              <strong>#${o.number} · ${productName(o.productId)}</strong>
+              <div class="small muted">${clientName(o.clientId)}</div>
+            </div>`).join(""):`<div class="empty">Toutes les commandes ont une date.</div>`}
+        </div>
+      </div>
+    </div>`;
+  renderDashboardCalendar();
+}
+function statCard(label,value,color,hint){return `<div class="card stat-card"><div class="label"><span class="accent" style="background:${color}"></span>${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`;}
+
+function renderOrders(){
+  orders.innerHTML=`
+    <div class="topbar"><div><h2>Commandes</h2><p>Suivi complet de la création à la livraison.</p></div>
+      <button class="primary-btn" onclick="openOrderModal()">+ Nouvelle commande</button></div>
+    <div class="toolbar" style="justify-content:space-between">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="orderSearch" placeholder="Rechercher un client ou une commande..." oninput="filterOrders()">
+        <select id="orderStatus" onchange="filterOrders()">
+          <option value="">Tous les statuts</option><option>Nouvelle</option><option>En attente</option><option>En production</option><option>Prête</option><option>Livrée</option><option>Annulée</option>
+        </select>
+      </div>
+      <div class="view-switch">
+        <button class="${ordersView==="list"?"active":""}" onclick="setOrdersView('list')">☰ Liste</button>
+        <button class="${ordersView==="calendar"?"active":""}" onclick="setOrdersView('calendar')">🗓 Calendrier</button>
+      </div>
+    </div>
+    <div id="ordersList" class="list"></div>
+    <div id="ordersCalendar" style="display:none"></div>`;
+  if(ordersView==="list") filterOrders(); else renderCalendar();
+}
+function setOrdersView(view){
+  ordersView=view;
+  renderOrders();
+}
+function filterOrders(){
+  const q=(document.getElementById("orderSearch")?.value||"").toLowerCase();
+  const st=document.getElementById("orderStatus")?.value||"";
+  const arr=[...data.orders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).filter(o=>{
+    const hay=`${o.number} ${clientName(o.clientId)} ${productName(o.productId)}`.toLowerCase();
+    return hay.includes(q) && (!st||o.status===st);
+  });
+  document.getElementById("ordersList").innerHTML=arr.length?arr.map(o=>{
+    const a=orderAlert(o), p=orderProgress(o);
+    return `<div class="order-card" onclick="openOrderDetails('${o.id}')">
+      <div><strong>#${o.number} · ${clientName(o.clientId)}</strong><div class="muted small">${productName(o.productId)} · créée le ${formatDate(o.createdAt)}</div></div>
+      <div><span class="badge ${statusClass(o.status)}">${o.status}</span><div class="small muted" style="margin-top:8px">${a.text}</div></div>
+      <div><div class="progress"><span style="width:${p}%"></span></div><div class="small muted" style="margin-top:6px">${p}% terminé</div></div>
+      <div><strong>${money((o.price||0)*(o.quantity||1)+Number(o.deliveryPrice||0))}</strong><div class="small muted">${o.quantity||1} × ${money(o.price||0)}</div></div>
+    </div>`;
+  }).join(""):`<div class="card empty">Aucune commande trouvée.</div>`;
+}
+
+
+function calendarStatusClass(order){
+  if(order.status==="Livrée") return "cal-green";
+  if(order.status==="Prête") return "cal-purple";
+  if(order.status==="En production") return "cal-orange";
+  if(order.status==="Annulée") return "cal-gray";
+  const due=order.dueDate?new Date(order.dueDate+"T23:59:59"):null;
+  if(due && due<new Date() && order.status!=="Livrée") return "cal-red";
+  return "cal-blue";
+}
+function shiftCalendarMonth(delta){
+  calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+delta,1);
+  renderCalendar();
+}
+function renderCalendar(){
+  const list=document.getElementById("ordersList");
+  const container=document.getElementById("ordersCalendar");
+  if(list) list.style.display="none";
+  if(!container) return;
+  container.style.display="block";
+
+  const year=calendarDate.getFullYear();
+  const month=calendarDate.getMonth();
+  const monthLabel=calendarDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const first=new Date(year,month,1);
+  const startDay=(first.getDay()+6)%7;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevMonthDays=new Date(year,month,0).getDate();
+
+  const datedOrders=data.orders.filter(o=>o.dueDate);
+  const unscheduled=data.orders.filter(o=>!o.dueDate && !["Livrée","Annulée"].includes(o.status));
+  let cells=[];
+
+  for(let i=0;i<42;i++){
+    let dayNum, cellDate, outside=false;
+    if(i<startDay){
+      dayNum=prevMonthDays-startDay+i+1;
+      cellDate=new Date(year,month-1,dayNum);
+      outside=true;
+    }else if(i>=startDay+daysInMonth){
+      dayNum=i-(startDay+daysInMonth)+1;
+      cellDate=new Date(year,month+1,dayNum);
+      outside=true;
+    }else{
+      dayNum=i-startDay+1;
+      cellDate=new Date(year,month,dayNum);
+    }
+    const iso=`${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,"0")}-${String(cellDate.getDate()).padStart(2,"0")}`;
+    const dayOrders=datedOrders.filter(o=>o.dueDate===iso);
+    cells.push(`<div class="calendar-cell ${outside?"outside":""}">
+      <div class="calendar-date">${dayNum}</div>
+      ${dayOrders.map(o=>`<button class="calendar-order ${calendarStatusClass(o)}" onclick="openOrderDetails('${o.id}')">
+        #${o.number} · ${productName(o.productId)} ×${o.quantity||1}
+      </button>`).join("")}
+    </div>`);
+  }
+
+  container.innerHTML=`
+    <div class="calendar-wrap">
+      <div class="calendar-head">
+        <div><h3 style="margin:0;text-transform:capitalize">${monthLabel}</h3><div class="small muted">Dates de livraison prévues</div></div>
+        <div class="calendar-nav">
+          <button onclick="shiftCalendarMonth(-1)">‹</button>
+          <button onclick="calendarDate=new Date();renderCalendar()" style="width:auto;padding:0 12px">Aujourd'hui</button>
+          <button onclick="shiftCalendarMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="calendar-grid">
+        ${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(d=>`<div class="calendar-day-name">${d}</div>`).join("")}
+        ${cells.join("")}
+      </div>
+      <div class="calendar-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Nouvelle / en attente</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>En production</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>Prête</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#27b474"></span>Livrée</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ef5b5b"></span>En retard</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#98a2b3"></span>Annulée</div>
+      </div>
+    </div>
+    <div class="card unscheduled">
+      <div class="section-title"><h3>Commandes à planifier</h3><span class="badge gray">${unscheduled.length}</span></div>
+      <div class="unscheduled-list">
+        ${unscheduled.length?unscheduled.map(o=>`<div class="unscheduled-card" onclick="openOrderDetails('${o.id}')">
+          <strong>#${o.number}</strong><div class="small muted">${clientName(o.clientId)} · ${productName(o.productId)}</div>
+        </div>`).join(""):`<div class="muted">Toutes les commandes actives ont une date.</div>`}
+      </div>
+    </div>`;
+}
+
+function renderProducts(){
+  products.innerHTML=`
+    <div class="topbar"><div><h2>Produits</h2><p>Crée tes jeux et leurs étapes de fabrication.</p></div>
+      <button class="primary-btn" onclick="openProductModal()">+ Nouveau produit</button></div>
+    <div class="grid product-grid">
+      ${data.products.map(p=>`<div class="product-card">
+        <div class="section-title"><div><h4>${p.name}</h4><div class="muted">${money(p.price)}</div></div>
+        <button class="secondary-btn" onclick="openProductModal('${p.id}')">Modifier</button></div>
+        <div class="small muted">${p.steps.length} étapes de fabrication</div>
+        <ul class="steps">${p.steps.map((s,i)=>`<li>${i+1}. ${s.name} <span class="badge gray" style="float:right">${s.type}</span></li>`).join("")}</ul>
+      </div>`).join("")||`<div class="card empty">Aucun produit.</div>`}
+    </div>`;
+}
+function renderClients(){
+  clients.innerHTML=`
+    <div class="topbar"><div><h2>Clients</h2><p>Coordonnées et historique des commandes.</p></div>
+      <button class="primary-btn" onclick="openClientModal()">+ Nouveau client</button></div>
+    <div class="card"><table><thead><tr><th>Nom</th><th>Téléphone</th><th>Email</th><th>Commandes</th><th>Total</th></tr></thead><tbody>
+      ${data.clients.map(c=>{
+        const os=data.orders.filter(o=>o.clientId===c.id);
+        return `<tr><td><strong>${c.name}</strong></td><td>${c.phone||"—"}</td><td>${c.email||"—"}</td><td>${os.length}</td><td>${money(os.reduce((s,o)=>s+(Number(o.price||0)*Number(o.quantity||1)+Number(o.deliveryPrice||0)),0))}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+}
+function renderStats(){
+  const delivered=data.orders.filter(o=>o.status==="Livrée");
+  const byProduct=data.products.map(p=>({name:p.name,count:data.orders.filter(o=>o.productId===p.id).length}));
+  const max=Math.max(1,...byProduct.map(x=>x.count));
+  const avg=data.orders.length?Math.round(data.orders.reduce((s,o)=>s+orderProgress(o),0)/data.orders.length):0;
+  const revenue=delivered.reduce((s,o)=>s+(Number(o.price||0)*Number(o.quantity||1)+Number(o.deliveryPrice||0)),0);
+  stats.innerHTML=`
+    <div class="topbar"><div><h2>Statistiques</h2><p>Vue simple de la progression et des performances.</p></div></div>
+    <div class="grid cards">
+      ${statCard("Commandes totales",data.orders.length,"#5b67f1","Toutes périodes")}
+      ${statCard("Commandes livrées",delivered.length,"#27b474","Terminées")}
+      ${statCard("Progression moyenne",avg+"%","#3b82f6","Toutes commandes")}
+      ${statCard("Revenus livrés",money(revenue),"#f59e0b","Chiffre d'affaires")}
+    </div>
+    <div class="grid two-col">
+      <div class="card"><div class="section-title"><h3>Commandes par produit</h3></div>
+        <div class="bar-chart">${byProduct.map(x=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(8,x.count/max*170)}px"></div><strong>${x.count}</strong><br><span>${x.name}</span></div>`).join("")}</div>
+      </div>
+      <div class="card"><div class="section-title"><h3>Répartition</h3></div>
+        ${["Nouvelle","En attente","En production","Prête","Livrée","Annulée"].map(s=>{
+          const n=data.orders.filter(o=>o.status===s).length;
+          return `<div style="margin-bottom:15px"><div style="display:flex;justify-content:space-between"><span>${s}</span><strong>${n}</strong></div>
+          <div class="progress" style="margin-top:7px"><span style="width:${data.orders.length?n/data.orders.length*100:0}%"></span></div></div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+function renderSettings(){
+  settings.innerHTML=`
+    <div class="topbar"><div><h2>Paramètres</h2><p>Règles automatiques et tarifs de livraison.</p></div></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+      <div class="card">
+        <div class="section-title"><h3>Alertes automatiques</h3></div>
+        <div class="form-grid">
+          <div class="field"><label>Alerte orange après</label><input id="warningDays" type="number" value="${data.settings.warningDays}" oninput="autoSaveSettings()"></div>
+          <div class="field"><label>Alerte rouge après</label><input id="criticalDays" type="number" value="${data.settings.criticalDays}" oninput="autoSaveSettings()"></div>
+          <div class="field full"><p class="muted">Les paramètres sont sauvegardés automatiquement.</p><div id="settingsSaved" class="small" style="color:var(--green);min-height:18px"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title"><h3>Villes et tarifs de livraison</h3></div>
+        <div id="deliveryCitiesEditor" class="delivery-city-list">
+          ${data.settings.deliveryCities.map(c=>deliveryCityRow(c.city,c.price)).join("")}
+        </div>
+        <button class="secondary-btn" onclick="addDeliveryCityRow()">+ Ajouter une ville</button>
+        <p class="small muted">Les nouveaux tarifs seront proposés automatiquement dans les commandes. Le prix restera modifiable.</p>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="secondary-btn" onclick="exportData()">Exporter les données</button>
+      <button class="danger-btn" onclick="resetDemo()">Réinitialiser les données</button>
+    </div>`;
+}
+function deliveryCityRow(city="",price=0){
+  return `<div class="delivery-city-row">
+    <input class="delivery-city-name" value="${city}" placeholder="Nom de la ville" oninput="autoSaveDeliveryCities()">
+    <input class="delivery-city-price" type="number" min="0" value="${price}" placeholder="Prix" oninput="autoSaveDeliveryCities()">
+    <button class="close" onclick="this.parentElement.remove();autoSaveDeliveryCities()">−</button>
+  </div>`;
+}
+function addDeliveryCityRow(){
+  deliveryCitiesEditor.insertAdjacentHTML("beforeend",deliveryCityRow());
+}
+let deliveryCitiesTimer;
+function autoSaveDeliveryCities(){
+  clearTimeout(deliveryCitiesTimer);
+  deliveryCitiesTimer=setTimeout(()=>{
+    data.settings.deliveryCities=[...document.querySelectorAll(".delivery-city-row")].map(r=>({
+      id:uid("d"),
+      city:r.querySelector(".delivery-city-name").value.trim(),
+      price:Number(r.querySelector(".delivery-city-price").value||0)
+    })).filter(c=>c.city);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  },300);
+}
+let settingsSaveTimer;
+function autoSaveSettings(){
+  clearTimeout(settingsSaveTimer);
+  settingsSaveTimer=setTimeout(()=>{
+    data.settings.warningDays=Number(warningDays.value||7);
+    data.settings.criticalDays=Number(criticalDays.value||14);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const msg=document.getElementById("settingsSaved");
+    if(msg){msg.textContent="✓ Paramètres enregistrés automatiquement";setTimeout(()=>msg.textContent="",1800);}
+    renderDashboard();renderOrders();
+  },300);
+}
+function exportData(){
+  const payload={
+    exportedAt:new Date().toISOString(),
+    application:"PrintYourGame CRM",
+    data
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`printyourgame_export_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function resetDemo(){ if(confirm("Supprimer toutes les données enregistrées ?")){localStorage.removeItem(STORAGE_KEY);data=structuredClone(defaultData);save();} }
+
+function renderAll(){renderDashboard();renderOrders();renderProducts();renderClients();renderStats();renderSettings();}
+function goTo(page){document.querySelector(`[data-page="${page}"]`).click();}
+function clientName(id){return data.clients.find(c=>c.id===id)?.name||"Client inconnu";}
+function productName(id){return data.products.find(p=>p.id===id)?.name||"Produit inconnu";}
+
+function openModal(title,content){modalTitle.textContent=title;modalContent.innerHTML=content;modal.classList.add("open")}
+function closeModal(){modal.classList.remove("open")}
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+
+function openOrderModal(id=null){
+  const o=id?data.orders.find(x=>x.id===id):null;
+  openModal(o?"Modifier la commande":"Nouvelle commande",`
+    <div class="form-grid">
+      <div class="field"><label>Client *</label><select id="fClient">${data.clients.map(c=>`<option value="${c.id}" ${o?.clientId===c.id?"selected":""}>${c.name}</option>`).join("")}</select></div>
+      <div class="field"><label>Produit *</label><select id="fProduct" onchange="fillDefaultPrice()">${data.products.map(p=>`<option value="${p.id}" ${o?.productId===p.id?"selected":""}>${p.name}</option>`).join("")}</select></div>
+      <div class="field"><label>Statut</label><select id="fStatus">${["Nouvelle","En attente","En production","Prête","Livrée","Annulée"].map(s=>`<option ${o?.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
+      <div class="field"><label>Quantité</label><input id="fQuantity" type="number" min="1" value="${o?.quantity||1}" oninput="updateOrderTotal()"></div>
+      <div class="field"><label>Prix unitaire</label><input id="fPrice" type="number" value="${o?.price ?? (data.products.find(p=>p.id===(o?.productId||data.products[0]?.id))?.price||0)}" oninput="updateOrderTotal()"></div>
+      <div class="field"><label>Mode de livraison</label>
+        <select id="fDeliveryType" onchange="toggleDeliveryFields();updateOrderTotal()">
+          ${["Retrait sur place","Livraison"].map(t=>`<option ${o?.deliveryType===t?"selected":""}>${t}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field" id="deliveryCityField"><label>Ville de livraison</label>
+        <select id="fDeliveryCity" onchange="applyCityDeliveryPrice()">
+          <option value="">Choisir une ville</option>
+          ${data.settings.deliveryCities.map(c=>`<option value="${c.city}" data-price="${c.price}" ${o?.deliveryCity===c.city?"selected":""}>${c.city} — ${money(c.price)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field" id="deliveryPriceField"><label>Prix de la livraison</label><input id="fDeliveryPrice" type="number" min="0" value="${o?.deliveryPrice||0}" oninput="updateOrderTotal()"></div>
+      <div class="field full" id="deliveryAddressField"><label>Adresse de livraison</label><input id="fDeliveryAddress" value="${o?.deliveryAddress||""}" placeholder="Rue, numéro, appartement, détails utiles"></div>
+      <div class="field"><label>Sous-total produits</label><input id="fSubtotal" type="text" value="" readonly></div>
+      <div class="field"><label>Total final</label><input id="fTotal" type="text" value="" readonly></div>
+      <div class="field"><label>Date de livraison</label><input id="fDue" type="date" value="${o?.dueDate||""}"></div>
+      <div class="field"><label>Couleurs / personnalisation</label><input id="fCustom" value="${o?.custom||""}" placeholder="Ex. bleu nuit, prénom Ethan"></div>
+      <div class="field full"><label>Notes</label><textarea id="fNotes" rows="3">${o?.notes||""}</textarea></div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="primary-btn" onclick="saveOrder('${id||""}')">Enregistrer</button>
+      ${o?`<button class="danger-btn" onclick="deleteOrder('${o.id}')">Supprimer</button>`:""}
+    </div>`);
+  setTimeout(()=>{toggleDeliveryFields();updateOrderTotal();},0);
+}
+function fillDefaultPrice(){
+  const product=data.products.find(p=>p.id===fProduct.value);
+  if(product) fPrice.value=product.price||0;
+  updateOrderTotal();
+}
+function toggleDeliveryFields(){
+  const isDelivery=document.getElementById("fDeliveryType")?.value==="Livraison";
+  ["deliveryCityField","deliveryPriceField","deliveryAddressField"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=isDelivery?"flex":"none";
+  });
+  if(!isDelivery){
+    if(document.getElementById("fDeliveryPrice")) fDeliveryPrice.value=0;
+    if(document.getElementById("fDeliveryCity")) fDeliveryCity.value="";
+  }
+}
+function applyCityDeliveryPrice(){
+  const select=document.getElementById("fDeliveryCity");
+  if(!select) return;
+  const option=select.options[select.selectedIndex];
+  const price=Number(option?.dataset?.price||0);
+  if(document.getElementById("fDeliveryPrice")) fDeliveryPrice.value=price;
+  updateOrderTotal();
+}
+function updateOrderTotal(){
+  const qty=Number(document.getElementById("fQuantity")?.value||1);
+  const price=Number(document.getElementById("fPrice")?.value||0);
+  const delivery=Number(document.getElementById("fDeliveryPrice")?.value||0);
+  const subtotal=document.getElementById("fSubtotal");
+  const total=document.getElementById("fTotal");
+  if(subtotal) subtotal.value=money(qty*price);
+  if(total) total.value=money(qty*price+delivery);
+}
+function saveOrder(id){
+  const existing=id?data.orders.find(o=>o.id===id):null;
+  const product=data.products.find(p=>p.id===fProduct.value);
+  if(!existing){
+    const num=(Math.max(1000,...data.orders.map(o=>Number(o.number)||0))+1).toString();
+    data.orders.push({
+      id:uid("o"),number:num,clientId:fClient.value,productId:fProduct.value,status:fStatus.value,
+      price:Number(fPrice.value||product?.price||0),quantity:Number(fQuantity.value||1),deliveryType:fDeliveryType.value,deliveryCity:fDeliveryType.value==='Livraison'?fDeliveryCity.value:'',deliveryAddress:fDeliveryType.value==='Livraison'?fDeliveryAddress.value:'',deliveryPrice:Number(fDeliveryPrice.value||0),dueDate:fDue.value,custom:fCustom.value,notes:fNotes.value,
+      createdAt:new Date().toISOString(),lastUpdate:new Date().toISOString(),
+      steps:(product?.steps||[]).map(s=>({...s,done:false}))
+    });
+  }else{
+    const productChanged=existing.productId!==fProduct.value;
+    existing.clientId=fClient.value;existing.productId=fProduct.value;existing.status=fStatus.value;
+    existing.price=Number(fPrice.value||0);existing.quantity=Number(fQuantity.value||1);existing.deliveryType=fDeliveryType.value;existing.deliveryCity=fDeliveryType.value==='Livraison'?fDeliveryCity.value:'';existing.deliveryAddress=fDeliveryType.value==='Livraison'?fDeliveryAddress.value:'';existing.deliveryPrice=Number(fDeliveryPrice.value||0);existing.dueDate=fDue.value;existing.custom=fCustom.value;existing.notes=fNotes.value;
+    existing.lastUpdate=new Date().toISOString();
+    if(productChanged) existing.steps=(product?.steps||[]).map(s=>({...s,done:false}));
+  }
+  closeModal();save();
+}
+function deleteOrder(id){if(confirm("Supprimer cette commande ?")){data.orders=data.orders.filter(o=>o.id!==id);closeModal();save();}}
+
+function openOrderDetails(id){
+  const o=data.orders.find(x=>x.id===id); if(!o)return;
+  const p=orderProgress(o),a=orderAlert(o);
+  openModal(`Commande #${o.number}`,`
+    <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
+      <div><div class="muted small">Client</div><strong>${clientName(o.clientId)}</strong></div>
+      <div><div class="muted small">Produit</div><strong>${productName(o.productId)}</strong></div>
+      <div><div class="muted small">Statut</div><span class="badge ${statusClass(o.status)}">${o.status}</span></div>
+      <div><div class="muted small">Alerte</div><span class="badge ${a.level}">${a.text}</span></div>
+      <div><div class="muted small">Livraison</div><strong>${o.deliveryType||"Retrait sur place"}${o.deliveryCity?` · ${o.deliveryCity}`:""}</strong></div>
+      <div><div class="muted small">Prix livraison</div><strong>${money(o.deliveryPrice||0)}</strong></div>
+      ${o.deliveryAddress?`<div style="grid-column:1/-1"><div class="muted small">Adresse</div><strong>${o.deliveryAddress}</strong></div>`:""}
+    </div>
+    <div class="card" style="box-shadow:none;margin-bottom:16px"><div style="display:flex;justify-content:space-between"><strong>Avancement global</strong><strong>${p}%</strong></div>
+      <div class="progress" style="margin-top:10px"><span style="width:${p}%"></span></div></div>
+    <h4>Étapes de fabrication</h4>
+    <div class="steps-editor">${o.steps.map((s,i)=>`<label class="step-check">
+      <input type="checkbox" ${s.done?"checked":""} onchange="toggleStep('${o.id}',${i},this.checked)">
+      <div><strong>${s.name}</strong><div class="small muted">${s.type}</div></div>
+      <span class="badge ${s.done?"green":"gray"}">${s.done?"Terminée":"À faire"}</span>
+    </label>`).join("")}</div>
+    <div style="margin-top:18px"><button class="secondary-btn" onclick="openOrderModal('${o.id}')">Modifier les informations</button></div>`);
+}
+function toggleStep(orderId,index,checked){
+  const o=data.orders.find(x=>x.id===orderId);o.steps[index].done=checked;o.lastUpdate=new Date().toISOString();
+  if(orderProgress(o)===100 && o.status!=="Livrée")o.status="Prête";
+  save();openOrderDetails(orderId);
+}
+
+function openProductModal(id=null){
+  const p=id?data.products.find(x=>x.id===id):null;
+  openModal(p?"Modifier le produit":"Nouveau produit",`
+    <div class="form-grid">
+      <div class="field"><label>Nom du jeu *</label><input id="pName" value="${p?.name||""}"></div>
+      <div class="field"><label>Prix par défaut</label><input id="pPrice" type="number" value="${p?.price||""}"></div>
+      <div class="field full"><label>Étapes de fabrication</label>
+        <div id="stepsEditor" class="steps-editor">
+          ${(p?.steps||[{name:"",type:"Impression"}]).map((s,i)=>stepInputRow(s.name,s.type)).join("")}
+        </div>
+        <button class="secondary-btn" style="margin-top:10px" onclick="addStepRow()">+ Ajouter une étape</button>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="primary-btn" onclick="saveProduct('${id||""}')">Enregistrer</button>
+      ${p?`<button class="danger-btn" onclick="deleteProduct('${p.id}')">Supprimer</button>`:""}
+    </div>`);
+}
+function stepInputRow(name="",type="Impression"){return `<div class="step-row"><input class="step-name" value="${name}" placeholder="Nom de l'étape">
+<select class="step-type">${["Impression","Assemblage","Finition","Contrôle","Emballage"].map(t=>`<option ${type===t?"selected":""}>${t}</option>`).join("")}</select>
+<button class="close" onclick="this.parentElement.remove()">−</button></div>`}
+function addStepRow(){stepsEditor.insertAdjacentHTML("beforeend",stepInputRow())}
+function saveProduct(id){
+  const steps=[...document.querySelectorAll(".step-row")].map(r=>({name:r.querySelector(".step-name").value.trim(),type:r.querySelector(".step-type").value})).filter(s=>s.name);
+  if(!pName.value.trim()||!steps.length){alert("Ajoute un nom et au moins une étape.");return}
+  const existing=id?data.products.find(p=>p.id===id):null;
+  if(existing){existing.name=pName.value.trim();existing.price=Number(pPrice.value||0);existing.steps=steps}
+  else data.products.push({id:uid("p"),name:pName.value.trim(),price:Number(pPrice.value||0),steps});
+  closeModal();save();
+}
+function deleteProduct(id){
+  if(data.orders.some(o=>o.productId===id)){alert("Ce produit est utilisé dans une commande.");return}
+  if(confirm("Supprimer ce produit ?")){data.products=data.products.filter(p=>p.id!==id);closeModal();save();}
+}
+function openClientModal(){
+  openModal("Nouveau client",`<div class="form-grid">
+    <div class="field"><label>Nom *</label><input id="cName"></div>
+    <div class="field"><label>Téléphone</label><input id="cPhone"></div>
+    <div class="field full"><label>Email</label><input id="cEmail" type="email"></div>
+  </div><button class="primary-btn" style="margin-top:18px" onclick="saveClient()">Enregistrer</button>`);
+}
+function saveClient(){
+  if(!cName.value.trim()){alert("Ajoute un nom.");return}
+  data.clients.push({id:uid("c"),name:cName.value.trim(),phone:cPhone.value.trim(),email:cEmail.value.trim()});
+  closeModal();save();
+}
+renderAll();
+</script>
+</body>
+</html>
