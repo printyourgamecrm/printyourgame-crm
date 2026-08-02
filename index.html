@@ -588,6 +588,8 @@ function renderSettings(){
     </div>
     <div style="margin-top:18px;display:flex;gap:10px">
       <button class="secondary-btn" onclick="exportData()">Exporter les données</button>
+<button class="secondary-btn" onclick="document.getElementById('backupFile').click()">Charger une sauvegarde</button>
+<input id="backupFile" type="file" accept=".json" style="display:none" onchange="importBackup(event)">
       <button class="danger-btn" onclick="resetDemo()">Réinitialiser les données</button>
     </div>`;
 }
@@ -639,6 +641,23 @@ function exportData(){
   a.click();
   URL.revokeObjectURL(url);
 }
+function importBackup(event){
+const file=event.target.files[0];
+if(!file)return;
+const r=new FileReader();
+r.onload=(e)=>{
+ try{
+  const obj=JSON.parse(e.target.result);
+  const data=obj.data||obj;
+  if(!confirm("Remplacer toutes les données actuelles ?"))return;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  alert("Sauvegarde restaurée.");
+  location.reload();
+ }catch(e){alert("Fichier invalide.");}
+};
+r.readAsText(file);
+}
+
 function resetDemo(){ if(confirm("Supprimer toutes les données enregistrées ?")){localStorage.removeItem(STORAGE_KEY);data=structuredClone(defaultData);save();} }
 
 function renderAll(){renderDashboard();renderOrders();renderProducts();renderClients();renderStats();renderSettings();}
