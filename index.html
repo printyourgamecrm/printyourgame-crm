@@ -352,6 +352,9 @@
 
 
     .sync-status{
+      border-style:solid;
+      cursor:default;
+      font-family:inherit;
       position:fixed;
       right:18px;
       bottom:18px;
@@ -376,6 +379,8 @@
     .sync-status.saving .sync-dot{background:#2f6fbe;animation:syncPulse 1s infinite}
     .sync-status.saved .sync-dot{background:#23845a}
     .sync-status.error .sync-dot{background:#c34747}
+    .sync-status.retry{cursor:pointer}
+    .sync-status.retry:hover{transform:translateY(-1px)}
     @keyframes syncPulse{50%{opacity:.35}}
 
 </style>
@@ -430,7 +435,7 @@
   </main>
 </div>
 
-<div id="syncStatus" class="sync-status loading"><span class="sync-dot"></span><span id="syncText">Connexion au serveur…</span></div>
+<button id="syncStatus" class="sync-status loading" type="button" onclick="retryServerSync()" title="État de synchronisation"><span class="sync-dot"></span><span id="syncText">Connexion au serveur…</span></button>
 
 <div id="modal" class="modal">
   <div class="modal-box">
@@ -478,6 +483,7 @@ function setSyncStatus(type,text){
   const label=document.getElementById("syncText");
   if(!box||!label)return;
   box.className=`sync-status ${type}`;
+  if(type!=="error")box.classList.remove("retry");
   label.textContent=text;
 }
 
@@ -504,11 +510,32 @@ function normalizeData(value){
   return normalized;
 }
 
+
+async function fetchWithTimeout(url,options={},timeoutMs=8000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+
+  try{
+    return await fetch(url,{...options,signal:controller.signal});
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function retryServerSync(){
+  const box=document.getElementById("syncStatus");
+  if(box && !box.classList.contains("retry"))return;
+
+  setSyncStatus("loading","Nouvelle tentative…");
+  await loadServerData();
+  renderAll();
+}
+
 async function loadServerData(){
   setSyncStatus("loading","Chargement des données…");
 
   try{
-    const response=await fetch("/api/data",{method:"GET",cache:"no-store"});
+    const response=await fetchWithTimeout("/api/data",{method:"GET",cache:"no-store"},8000);
     if(!response.ok)throw new Error(`Erreur serveur ${response.status}`);
 
     const result=await response.json();
@@ -527,7 +554,9 @@ async function loadServerData(){
     console.error(error);
     const cached=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
     data=normalizeData(cached||defaultData);
-    setSyncStatus("error","Hors ligne — copie locale");
+    setSyncStatus("error","Serveur indisponible — toucher pour réessayer");
+    const box=document.getElementById("syncStatus");
+    if(box)box.classList.add("retry");
   }
 }
 
@@ -555,11 +584,11 @@ async function saveToServer(force=false){
   setSyncStatus("saving","Sauvegarde sur le serveur…");
 
   try{
-    const response=await fetch("/api/data",{
+    const response=await fetchWithTimeout("/api/data",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify(data)
-    });
+    },8000);
 
     if(!response.ok)throw new Error(`Erreur serveur ${response.status}`);
     const result=await response.json();
@@ -569,7 +598,9 @@ async function saveToServer(force=false){
     setSyncStatus("saved","Toutes les données sont synchronisées");
   }catch(error){
     console.error(error);
-    setSyncStatus("error","Erreur serveur — copie locale conservée");
+    setSyncStatus("error","Erreur serveur — toucher pour réessayer");
+    const box=document.getElementById("syncStatus");
+    if(box)box.classList.add("retry");
   }finally{
     remoteSaveInProgress=false;
     if(pendingRemoteSave)saveToServer(false);
@@ -1199,7 +1230,7 @@ function saveClient(){
   data.clients.push({id:uid("c"),name:cName.value.trim(),phone:cPhone.value.trim(),email:cEmail.value.trim()});
   closeModal();save();
 }
-initializeApp();
+// Le chargement serveur démarre après validation du code d'accès.
 </script>
 
 <script>
@@ -1223,6 +1254,8 @@ initializeApp();
       setTimeout(()=>{
         cover.style.display="none";
       },450);
+
+      initializeApp();
     }else{
       error.textContent="Code incorrect.";
       input.select();
