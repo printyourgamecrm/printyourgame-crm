@@ -6,22 +6,22 @@
   <title>PrintYourGame CRM</title>
   <style>
     :root{
-      --bg:#f7f1e8;
-      --panel:#fffdf9;
-      --text:#4a3425;
-      --muted:#8b7768;
-      --border:#eadfce;
-      --nav:#4b2f20;
-      --primary:#7a5134;
-      --primary-soft:#f1e4d7;
-      --green:#5f8a68;
-      --green-soft:#edf5ee;
-      --orange:#c58a3a;
-      --orange-soft:#fbf1df;
-      --red:#b95d55;
-      --red-soft:#f8e9e7;
-      --blue:#8a6a50;
-      --shadow:0 12px 34px rgba(74,52,37,.08);
+      --bg:#f6f3ef;
+      --panel:#ffffff;
+      --text:#20242c;
+      --muted:#606978;
+      --border:#dfe3e8;
+      --nav:#3f291d;
+      --primary:#6e472f;
+      --primary-soft:#eee3da;
+      --green:#23845a;
+      --green-soft:#e8f5ee;
+      --orange:#c27715;
+      --orange-soft:#fff3df;
+      --red:#c34747;
+      --red-soft:#fdecec;
+      --blue:#2f6fbe;
+      --shadow:0 12px 34px rgba(31,36,44,.08);
       --radius:18px;
     }
     *{box-sizing:border-box}
@@ -239,9 +239,120 @@
       background:rgba(255,255,255,.12);
     }
 
+
+    body{background:var(--bg);color:var(--text)}
+    .card,.product-card,.order-card,.calendar-wrap,.modal-box{
+      background:#fff;
+      color:#20242c;
+    }
+    .muted,.small,.stat-card .label,.stat-card .hint,th{
+      color:#606978 !important;
+    }
+    td,th,.field label,.section-title h3,.topbar h2,.product-card h4{
+      color:#20242c;
+    }
+    input,select,textarea{
+      color:#20242c;
+      background:#fff;
+      border-color:#cfd5dc !important;
+    }
+    input::placeholder,textarea::placeholder{color:#8a93a0}
+    .sidebar{
+      background:linear-gradient(180deg,#3f291d 0%,#2f1e16 100%);
+    }
+    .nav-btn{color:#e8ddd5}
+    .nav-btn:hover,.nav-btn.active{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+    }
+    .brand small{color:#d7c6bb}
+    .primary-btn,.login-submit{
+      background:linear-gradient(135deg,#744b32,#5f3d29);
+      color:#fff;
+    }
+    .secondary-btn{
+      background:#eee3da;
+      color:#5f3d29;
+    }
+    .badge.blue{background:#e8f0fb;color:#2f6fbe}
+    .badge.orange{background:#fff3df;color:#a45f0b}
+    .badge.green{background:#e8f5ee;color:#23845a}
+    .badge.red{background:#fdecec;color:#c34747}
+    .badge.gray{background:#eef1f4;color:#596273}
+    .progress{background:#e7ebef}
+    .progress > span{
+      background:linear-gradient(90deg,#6e472f,#a27350);
+    }
+
+    #loginCover{
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      background:rgba(246,243,239,.82);
+      transition:opacity .45s ease,visibility .45s ease;
+    }
+    #loginCover.closing{
+      opacity:0;
+      visibility:hidden;
+    }
+    .login-card{
+      animation:loginCardIn .65s cubic-bezier(.2,.8,.2,1);
+      border:1px solid rgba(63,41,29,.10);
+      box-shadow:0 30px 90px rgba(50,32,22,.20);
+    }
+    @keyframes loginCardIn{
+      from{opacity:0;transform:translateY(24px) scale(.96)}
+      to{opacity:1;transform:none}
+    }
+    .login-logo{
+      animation:logoFloat 2.8s ease-in-out infinite;
+      box-shadow:0 14px 35px rgba(63,41,29,.15);
+    }
+    @keyframes logoFloat{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-7px)}
+    }
+    .login-submit{
+      position:relative;
+      overflow:hidden;
+      transition:transform .2s ease,box-shadow .2s ease;
+      box-shadow:0 10px 24px rgba(95,61,41,.22);
+    }
+    .login-submit:hover{
+      transform:translateY(-2px);
+      box-shadow:0 14px 28px rgba(95,61,41,.28);
+    }
+    .login-submit:active{transform:translateY(0) scale(.99)}
+    .login-submit::after{
+      content:"";
+      position:absolute;
+      top:-50%;left:-30%;
+      width:30%;height:200%;
+      background:rgba(255,255,255,.28);
+      transform:rotate(20deg);
+      transition:left .55s ease;
+    }
+    .login-submit:hover::after{left:120%}
+    .app{
+      opacity:1;
+      transition:opacity .5s ease,transform .5s ease;
+    }
+    body.locked .app{
+      opacity:.16;
+      transform:scale(.995);
+      pointer-events:none;
+      user-select:none;
+    }
+    body.unlocked .app{
+      animation:crmReveal .55s ease;
+    }
+    @keyframes crmReveal{
+      from{opacity:.35;transform:translateY(8px)}
+      to{opacity:1;transform:none}
+    }
+
 </style>
 </head>
-<body>
+<body class="locked">
 
 <div id="loginCover">
   <div class="login-card">
@@ -946,22 +1057,20 @@ renderAll();
   const input = document.getElementById("crmAccessCode");
   const error = document.getElementById("loginError");
 
-  function unlockCRM(){
-    sessionStorage.setItem("printyourgame_authenticated","yes");
-    cover.classList.add("hidden");
-  }
-
-  if(sessionStorage.getItem("printyourgame_authenticated")==="yes"){
-    cover.classList.add("hidden");
-  }else{
-    setTimeout(()=>input.focus(),100);
-  }
+  setTimeout(()=>input.focus(),120);
 
   form.addEventListener("submit",function(event){
     event.preventDefault();
-    if(input.value.trim()==="ethan01"){
+
+    if(input.value.trim()==="ethan"){
       error.textContent="";
-      unlockCRM();
+      document.body.classList.remove("locked");
+      document.body.classList.add("unlocked");
+      cover.classList.add("closing");
+
+      setTimeout(()=>{
+        cover.style.display="none";
+      },450);
     }else{
       error.textContent="Code incorrect.";
       input.select();
